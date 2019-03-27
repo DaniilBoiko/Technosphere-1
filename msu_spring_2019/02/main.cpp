@@ -8,9 +8,7 @@ using namespace std;
 
 void error() {
 	// Raises an error
-
 	cerr << "error" << endl;
-	exit(1);
 }
 
 double is_minus(const string& s, int i) {
@@ -27,27 +25,28 @@ double is_minus(const string& s, int i) {
 	}
 }
 
-
 // Declaration of the 'calc' function
-int calc(const string& s, int len, int i, bool minus = false);
+int calc(const string& s, int len, int i, bool& error, bool minus = false);
 
-int toi(const string& s, int len, int i) {
+int toi(const string& s, int len, int i, bool& error) {
 	// Converts string to integer
 
 	if (len == i) {
-		error();
+		error = true;
+		return 0;
 	} else {
 
 		try {
 			return stoi(s.substr(i, len - i));
 		} catch (const std::invalid_argument&) {
-			error();
+			error = true;
+			return 0;
 		}
 
 	}
 }
 
-int mul_div(const string& s, int len, int i) {
+int mul_div(const string& s, int len, int i, bool& error) {
 	// Looks for multiplication and division operators
 
 	int start = i;
@@ -58,20 +57,21 @@ int mul_div(const string& s, int len, int i) {
 
 	if (i != len) {
 		if (s[i] == '*') {
-			return calc(s, i, start) * calc(s, len, i + 1);
+			return calc(s, i, start, error) * calc(s, len, i + 1, error);
 		} else {
-			if (calc(s, len, i + 1) == 0) {
-				error();
+			if (calc(s, len, i + 1, error) == 0) {
+				error = true;
+				return 0;
 			} else {
-				return calc(s, i, start) / calc(s, len, i + 1);
+				return calc(s, i, start, error) / calc(s, len, i + 1, error);
 			}
 		}
 	} else {
-		return toi(s, len, start);
+		return toi(s, len, start, error);
 	}
 }
 
-int add_sub(const string& s, int len, int i, bool minus = false) {
+int add_sub(const string& s, int len, int i, bool& error, bool minus = false) {
 	// Looks for addition and subtraction operators
 
 	int start = i;
@@ -85,31 +85,33 @@ int add_sub(const string& s, int len, int i, bool minus = false) {
 
 		if (s[i] == '+') {
 			if (minus) {
-				return calc(s, i, start) - calc(s, len, i + 1);
+				return calc(s, i, start, error) - calc(s, len, i + 1, error);
 			} else {
-				return calc(s, i, start) + calc(s, len, i + 1);
+				return calc(s, i, start, error) + calc(s, len, i + 1, error);
 			}
 		} else {
 			if (minus) {
-				return calc(s, i, start) + calc(s, len, i + 1);
+				return calc(s, i, start, error) + calc(s, len, i + 1, error);
 			} else {
-				return calc(s, i, start) - calc(s, len, i + 1, true);
+				return calc(s, i, start, error)
+						- calc(s, len, i + 1, error, true);
 			}
 		}
 
 	} else {
-		return mul_div(s, len, start);
+		return mul_div(s, len, start, error);
 	}
 
 }
 
-int calc(const string& s, int len, int i, bool minus) {
+int calc(const string& s, int len, int i, bool& error, bool minus) {
 	// Calls add_sub
 
-	return add_sub(s, len, i, minus);
+	return add_sub(s, len, i, error, minus);
 }
 
 int main(int argc, char** argv) {
+	bool error_flag = false;
 
 	// Check args
 	if (argc > 2) {
@@ -126,16 +128,22 @@ int main(int argc, char** argv) {
 
 	// Remove spaces
 	int count = 0;
-	for (int i = 0; str[i]; i++) {
+	for (int i = 0; i < str.length(); i++) {
 
 		if (str[i] != ' ') {
 			str[count++] = str[i];
 		}
 	}
-	str[count] = '\0';
+	str.erase(count, str.length() - count);
 
 	// Call the calculator
-	cout << calc(str, str.length(), 0) << endl;
+	int answer = calc(str, str.length(), 0, error_flag);
 
+	if (!error_flag) {
+		cout << answer << endl;
+	} else {
+		error();
+		return 1;
+	}
 	return 0;
 }
