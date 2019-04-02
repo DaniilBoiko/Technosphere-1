@@ -11,7 +11,7 @@ class Matrix {
 public:
 	Matrix(size_t _rows, size_t _columns) :
 			columns(_columns), rows(_rows), content(new int*[rows]) {
-		for (int i = 0; i < rows; i += 1) {
+		for (int i = 0; i < rows; ++i) {
 			content[i] = new int[columns];
 		}
 	}
@@ -99,8 +99,8 @@ public:
 
 	// Произведение
 	Matrix& operator*=(int c) {
-		for (int i = 0; i < rows; i++) {
-			for (int j = 0; j < columns; j++) {
+		for (int i = 0; i < rows; ++i) {
+			for (int j = 0; j < columns; ++j) {
 				content[i][j] *= c;
 			}
 		}
