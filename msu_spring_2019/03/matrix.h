@@ -17,7 +17,7 @@ public:
 	}
 
 	Matrix(const Matrix &other) :
-			columns(other.columns), rows(other.rows), content(new int*[rows]) 	{
+			columns(other.columns), rows(other.rows), content(new int*[rows]) {
 		for (int i = 0; i < rows; ++i) {
 			content[i] = new int[columns];
 		}
