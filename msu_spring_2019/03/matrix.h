@@ -17,7 +17,15 @@ public:
 	}
 
 	Matrix(const Matrix &other) :
-			columns(other.columns), rows(other.rows), content(other.content) {
+			columns(other.columns), rows(other.rows), content(new int*[rows]) 	{
+		for (int i = 0; i < rows; ++i) {
+			content[i] = new int[columns];
+		}
+		for (int i = 0; i < rows; ++i) {
+			for (int j = 0; j < columns; ++j) {
+				content[i][j] = other.content[i][j];
+			}
+		}
 	}
 
 	size_t getRows() const {
