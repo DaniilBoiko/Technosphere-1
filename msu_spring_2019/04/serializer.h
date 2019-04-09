@@ -108,12 +108,16 @@ private:
         std::string txt;
         in_ >> txt;
 
-        if (txt[0] >= '0' && txt[0] <= '9') {
-            val = stoi(txt);
-            return Error::NoError;
+        if (txt.size() == 0) {
+	        return Error::CorruptedArchive;
         }
-
-        return Error::CorruptedArchive;
+        for (size_t i = 0; i<txt.size(); i++) {
+			if (!isdigit(txt[i])) {
+		        return Error::CorruptedArchive;
+			}
+        }
+        val = stoi(txt);
+        return Error::NoError;
     }
 
     template <class T>
