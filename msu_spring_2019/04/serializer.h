@@ -35,7 +35,7 @@ private:
         return Error::NoError;
     }
 
-    Error process_one(bool& val)
+    Error process_one(bool val)
     {
         if (val) {
             out_ << "true" << Separator;
@@ -105,18 +105,14 @@ private:
     Error process_one(uint64_t& val)
     {
 
-        std::string txt;
-        in_ >> txt;
+        int64_t num;
+        in_ >> num;
 
-        if (txt.size() == 0) {
+        if (num < 0) {
 	        return Error::CorruptedArchive;
         }
-        for (size_t i = 0; i<txt.size(); i++) {
-			if (!isdigit(txt[i])) {
-		        return Error::CorruptedArchive;
-			}
-        }
-        val = stoi(txt);
+
+        val = num;
         return Error::NoError;
     }
 
