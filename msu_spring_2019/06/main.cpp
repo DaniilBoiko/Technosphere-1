@@ -1,147 +1,166 @@
-#include <iostream>
 #include <fstream>
+#include <iostream>
 #include <stdlib.h>
+#include <string>
 #include <thread>
 #include <vector>
 
-using namespace std;
+const size_t size_of_buffer = 20;
 
-const size_t buff_size = 1024 * 512;
+void merge(std::ifstream &in1, std::ifstream &in2, std::ofstream &out) {
+	uint64_t in1_n;
+	uint64_t in2_n;
 
-void merge_files(const string &in1, const string &in2, const string &out) {
-	ifstream inf_1(in1, std::ios::binary);
-	ifstream inf_2(in2, std::ios::binary);
+	in1.read((char*) (&in1_n), sizeof(uint64_t));
+	in2.read((char*) (&in2_n), sizeof(uint64_t));
 
-	ofstream output(out, std::ios::binary);
-	uint64_t buffer1;
-	uint64_t buffer2;
-
-	while (inf_1.read(reinterpret_cast<char*>(&buffer1), sizeof(buffer1))
-			&& inf_2.read(reinterpret_cast<char*>(&buffer2), sizeof(buffer2))) {
-		if (buffer1 > buffer2) {
-			unsigned char value[sizeof(buffer1)];
-			std::memcpy(value, &buffer1, sizeof(buffer1));
-
-			output.write(reinterpret_cast<char*>(&value), sizeof(uint64_t));
-
+	while (!in1.eof() && !in2.eof()) {
+		if (in1_n > in2_n) {
+			out.write((char*) (&in2_n), sizeof(uint64_t));
+			in2.read((char*) (&in2_n), sizeof(uint64_t));
 		} else {
-			unsigned char value[sizeof(buffer2)];
-			std::memcpy(value, &buffer2, sizeof(buffer2));
-
-			output.write(reinterpret_cast<char*>(&value), sizeof(uint64_t));
+			out.write((char*) (&in1_n), sizeof(uint64_t));
+			in1.read((char*) (&in1_n), sizeof(uint64_t));
 
 		}
 	}
 
-	unsigned char buffer[sizeof(uint64_t)];
-
-	while (inf_1.read((char*) &buffer, sizeof(buffer))) {
-		output.write((char*) &buffer, sizeof(uint64_t));
-	}
-	while (inf_2.read((char*) &buffer, sizeof(buffer2))) {
-		output.write((char*) &buffer, sizeof(uint64_t));
+	while (!in1.eof()) {
+		out.write((char*) (&in1_n), sizeof(uint64_t));
+		in1.read((char*) (&in1_n), sizeof(uint64_t));
 	}
 
-	remove(in1.c_str());
-	remove(in2.c_str());
-
+	while (!in2.eof()) {
+		out.write((char*) (&in2_n), sizeof(uint64_t));
+		in2.read((char*) (&in2_n), sizeof(uint64_t));
+	}
 }
 
-void merge(const string &in, const vector<uint64_t> &out_new) {
-	string out = in + ".cache";
-	string out_temp = in + "tmp.cache";
+void sort(const std::string& in_filename, size_t start, size_t end,
+		const std::string& filename) {
+	std::ifstream in(in_filename, std::ios::binary);
 
-	ifstream input_f(out, std::ios::binary);
-	ofstream output_cache(out_temp, std::ios::binary);
+	std::ofstream create(filename + "1", std::ios::binary);
+	std::ofstream create_cache(filename + "11", std::fstream::binary);
+	create.close();
+	create_cache.close();
 
-	size_t vector_size = out_new.size();
-	size_t current_pos = 0;
+	std::fstream out(filename + "1",
+			std::fstream::in | std::fstream::out | std::fstream::binary);
+	std::fstream out_cache(filename + "11",
+			std::fstream::in | std::fstream::out | std::fstream::binary);
 
-	uint64_t buffer;
+	in.seekg(start);
 
-	while (input_f.read(reinterpret_cast<char*>(&buffer), sizeof(buffer))) {
-		for (int i = current_pos; i < vector_size; i++) {
-			if (buffer < out_new[i]) {
-				output_cache.write(reinterpret_cast<char*>(&buffer),
-						sizeof(uint64_t));
-				current_pos = i;
-				break;
-			} else {
-				unsigned char value[sizeof(out_new[i])];
-				std::memcpy(value, &out_new[i], sizeof(out_new[i]));
+	std::vector<uint64_t> buffer(size_of_buffer);
+	bool flag = false;
 
-				output_cache.write(reinterpret_cast<char*>(&value),
-						sizeof(uint64_t));
-			}
-		}
-	}
+	for (size_t i = start; i < end; i += size_of_buffer * sizeof(uint64_t)) {
+		size_t how_many;
 
-	for (int i = current_pos; i < vector_size; i++) {
-		unsigned char value[sizeof(out_new[i])];
-		std::memcpy(value, &out_new[i], sizeof(out_new[i]));
-		output_cache.write(reinterpret_cast<char*>(&value), sizeof(uint64_t));
-	}
-
-	remove(out.c_str());
-	rename(out_temp.c_str(), out.c_str());
-
-}
-
-void sort_file(const string &in) {
-	ifstream input_f(in, std::ios::binary);
-
-	vector<uint64_t> buffer(buff_size);
-	size_t current_pos = 0;
-
-	uint64_t number;
-
-	while (input_f.read(reinterpret_cast<char*>(&number), sizeof(number))) {
-		if (current_pos >= buff_size) {
-			sort(buffer.begin(), buffer.end());
-			merge(in, buffer);
-			current_pos = 0;
+		if ((i + size_of_buffer * sizeof(uint64_t)) > end) {
+			how_many = end - i;
 		} else {
-			buffer[current_pos] = number;
-			current_pos += 1;
+			how_many = size_of_buffer * sizeof(uint64_t);
 		}
 
-	}
+		in.read(reinterpret_cast<char*>(&buffer[0]), how_many);
 
-}
+		std::sort(buffer.begin(), buffer.end());
 
-int main() {
-	const string file = "/Users/daniilboiko/n.numbers";
 
-	ifstream input_f(file, std::ios::binary);
-	ofstream output1(file + "1", std::ios::binary);
-	ofstream output2(file + "2", std::ios::binary);
-
-	bool flag = true;
-	uint64_t number;
-
-	if (!input_f or !output1 or !output2) {
-		return -1;
-	}
-
-	while (input_f.read(reinterpret_cast<char*>(&number), sizeof(number))) {
-		if (flag) {
-			output1.write(reinterpret_cast<char*>(&number), sizeof(number));
-			flag = false;
-		} else {
-			output2.write(reinterpret_cast<char*>(&number), sizeof(number));
+		if (!flag) {
+			out_cache.seekp(0);
+			out_cache.write((char*) &buffer[0], how_many);
 			flag = true;
 
 		}
-		cout << number << endl;
+
+		else {
+
+			size_t current = 0;
+			uint64_t number_cache;
+			out.seekp(0);
+			out_cache.seekg(0);
+
+			size_t out_pos = 0;
+
+			for (size_t j = 0; j < i-start; j += sizeof(uint64_t)) {
+
+				out_cache.read((char *) &number_cache, sizeof(uint64_t));
+
+				if (current != (how_many / sizeof(uint64_t)) - 1) {
+					for (size_t k = current; k < (how_many / sizeof(uint64_t));
+							k++) {
+
+						if (buffer[k] > number_cache) {
+							out.write((char*) (&number_cache),
+									sizeof(uint64_t));
+
+							current = k;
+							break;
+						} else {
+							out.write((char*) (&buffer[k]), sizeof(uint64_t));
+
+							current = k;
+
+						}
+					}
+					if (current == (how_many / sizeof(uint64_t)) - 1) {
+						out.write((char*) (&number_cache), sizeof(uint64_t));
+
+					}
+				} else {
+					out.write((char*) (&number_cache), sizeof(uint64_t));
+
+				}
+
+			}
+
+			out_cache.seekp(0);
+			out.seekg(0);
+
+			for (size_t j = 1; j < i - start + how_many; j += sizeof(uint64_t)) {
+				uint64_t copy_buffer;
+				out.read((char *) (&copy_buffer), sizeof(uint64_t));
+				out_cache.write((char *) (&copy_buffer), sizeof(uint64_t));
+			}
+		}
+
+	}
+	std::remove((filename + "11").c_str());
+}
+
+int main() {
+	std::ifstream in("numbers.bin", std::ios::binary | std::ios::ate);
+	std::ofstream fout("numbers_sorted.bin", std::ios::binary);
+
+	if (!in) {
+		std::cerr << "Can't open";
+		return -1;
 	}
 
-	thread sort_1(sort_file, file + "1");
-	thread sort_2(sort_file, file + "2");
+	if (in.is_open()) {
+		size_t size = in.tellg();
 
-	sort_1.join();
-	sort_2.join();
+		size_t middle = sizeof(uint64_t) * ((size / sizeof(uint64_t)) / 2);
 
-	merge_files(file + "1.cache", file + "2.cache", file);
+		std::string inp = "numbers.bin";
+		std::string out1 = "numbers1.bin";
+		std::string out2 = "numbers2.bin";
+
+		std::thread sort1(sort, std::cref(inp), 0, middle, std::cref(out1));
+		std::thread sort2(sort, std::cref(inp), middle, size, std::cref(out2));
+
+		sort1.join();
+		sort2.join();
+
+		std::ifstream in1("numbers1.bin1", std::ios::binary);
+		std::ifstream in2("numbers2.bin1", std::ios::binary);
+
+		merge(in1, in2, fout);
+	}
 
 	return 0;
+
 }
