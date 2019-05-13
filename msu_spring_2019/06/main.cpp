@@ -164,6 +164,12 @@ int main() {
 		return -1;
 	}
 
+	if (!fout) {
+		std::cerr << "Can't open";
+		return -1;
+	}
+
+
 	if (in.is_open()) {
 		size_t size = in.tellg();
 
