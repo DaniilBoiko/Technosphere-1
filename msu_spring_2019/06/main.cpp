@@ -40,15 +40,39 @@ void sort(const std::string& in_filename, size_t start, size_t end,
 		const std::string& filename) {
 	std::ifstream in(in_filename, std::ios::binary);
 
+	if (!in) {
+		std::cerr << "Can't open";
+	}
+
 	std::ofstream create(filename + "1", std::ios::binary);
+
+	if (!create) {
+		std::cerr << "Can't create";
+	}
+
 	std::ofstream create_cache(filename + "11", std::fstream::binary);
+
+	if (!create_cache) {
+		std::cerr << "Can't create";
+	}
+
 	create.close();
 	create_cache.close();
 
 	std::fstream out(filename + "1",
 			std::fstream::in | std::fstream::out | std::fstream::binary);
+
+	if (!out) {
+		std::cerr << "Can't open";
+	}
+
 	std::fstream out_cache(filename + "11",
 			std::fstream::in | std::fstream::out | std::fstream::binary);
+
+	if (!out_cache) {
+		std::cerr << "Can't open";
+	}
+
 
 	in.seekg(start);
 
@@ -64,7 +88,7 @@ void sort(const std::string& in_filename, size_t start, size_t end,
 			how_many = size_of_buffer * sizeof(uint64_t);
 		}
 
-		in.read(reinterpret_cast<char*>(&buffer[0]), how_many);
+		in.read((char*)(&buffer[0]), how_many);
 
 		std::sort(buffer.begin(), buffer.end());
 
@@ -156,7 +180,19 @@ int main() {
 		sort2.join();
 
 		std::ifstream in1("numbers1.bin1", std::ios::binary);
+
+		if (!in1) {
+			std::cerr << "Can't open";
+			return -1;
+		}
+
 		std::ifstream in2("numbers2.bin1", std::ios::binary);
+
+
+		if (!in2) {
+			std::cerr << "Can't open";
+			return -1;
+		}
 
 		merge(in1, in2, fout);
 	}
